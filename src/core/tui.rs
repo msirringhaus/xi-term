@@ -78,6 +78,10 @@ impl Tui {
     fn handle_input(&mut self, event: Event) {
         match event {
             Event::Key(Key::Ctrl('c')) => self.exit(),
+            Event::Key(Key::Ctrl('n')) => self.editor.move_down(),
+            Event::Key(Key::Ctrl('p')) => self.editor.move_up(),
+            Event::Key(Key::Ctrl('f')) => self.editor.move_right(),
+            Event::Key(Key::Ctrl('b')) => self.editor.move_left(),
             Event::Key(Key::Alt('x')) => {
                 if let Some(ref mut prompt) = self.prompt {
                     match prompt.handle_input(&event) {
