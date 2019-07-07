@@ -5,10 +5,13 @@
 use std::io::Error;
 use std::io::Write;
 use termion::event::{Event, Key};
+use termion::style;
 
 use crate::core::{Command, ParseCommandError, FromPrompt, FindConfig, ParserMap};
 use termion::clear::CurrentLine as ClearLine;
 use termion::cursor::Goto;
+
+use sublime_fuzzy::{best_match, format_simple};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum CommandPromptMode {
@@ -124,8 +127,27 @@ impl CommandPrompt {
             return Ok(())
         }
 
-        let vals : Vec<_> = self.prompt_texts.iter().filter(|x| x.starts_with(&self.chars)).take(4).collect();
-        for (idx, val) in vals.iter().enumerate() {
+        // Matching against user input. Collecting tuples of the text + match-result
+        let mut vals : Vec<_> = self.prompt_texts.iter()
+                                                 .map(|x| (x, best_match(&self.chars, x)))
+                                                 .collect();
+        // Sort the vec by the match-score
+        vals.sort_by_cached_key(|(_x, r)| r.as_ref().map_or(0, |res| res.score()));
+        // Get the best four matches, and extract the found text.
+        // Highlight with format_simple() the matching characters.
+        let matches : Vec<_> = vals.iter()
+                   .rev()
+                   .take(4)
+                   .map(|(x, r)|
+                            if let Some(rr) = r {
+                                format_simple(rr, x, &format!("{}", style::Bold), &format!("{}", style::Reset))
+                            } else {
+                                x.to_string()
+                            }
+                        )
+                   .collect();
+
+        for (idx, val) in matches.iter().enumerate() {
             if let Err(err) = write!(
                 w,
                 "{}{}-> {}",
